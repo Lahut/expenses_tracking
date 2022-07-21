@@ -8,8 +8,13 @@ const {
   Timestamp,
   FieldValue,
 } = require("firebase-admin/firestore");
-
+const dotenv = require("dotenv");
+const express = require("express");
 const serviceAccount = require("./keys.json");
+
+const app = express();
+app.use(express.json());
+dotenv.config();
 
 initializeApp({
   credential: cert(serviceAccount),
@@ -42,5 +47,15 @@ async function readCollection() {
   });
 }
 
-// createCollection();
-readCollection();
+app.get("/", (req, res) => {
+  res.send("Success!");
+});
+
+app.post("/line-webhook", (req, res) => {
+  console.log(req.body.events);
+  res.send().status(200);
+});
+
+app.listen(process.env.PORT, () => {
+  console.log(`Listening on port ${process.env.PORT}`);
+});
