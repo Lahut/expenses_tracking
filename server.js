@@ -1,59 +1,32 @@
-const {
-  initializeApp,
-  applicationDefault,
-  cert,
-} = require("firebase-admin/app");
-const {
-  getFirestore,
-  Timestamp,
-  FieldValue,
-} = require("firebase-admin/firestore");
-const dotenv = require("dotenv");
 const express = require("express");
-const serviceAccount = require("./keys.json");
-
+const dotenv = require("dotenv");
+const { addExpenses } = require("./services");
 const app = express();
+
 app.use(express.json());
 dotenv.config();
-
-initializeApp({
-  credential: cert(serviceAccount),
-});
-const db = getFirestore();
-
-async function createCollection() {
-  const docRef = db.collection("expenses").doc("2");
-  let today = new Date();
-  const data = {
-    created:
-      today.getFullYear() +
-      "-" +
-      (today.getMonth() + 1) +
-      "-" +
-      today.getDate(),
-    price: 100,
-    category: "f",
-    name: "ข้าวหมูกรอบพิเศษ",
-  };
-  const res = await docRef.set(data);
-  console.log(res);
-}
-
-async function readCollection() {
-  const snapshot = await db.collection("expenses").get();
-
-  snapshot.forEach((doc) => {
-    console.log(doc.data());
-  });
-}
 
 app.get("/", (req, res) => {
   res.send("Success!");
 });
 
-app.post("/line-webhook", (req, res) => {
-  console.log(req.body.events);
-  res.send().status(200);
+app.post("/line-webhook", async (req, res) => {
+  if (req.body.events.lenght != 0) {
+    if (req.body.events[0].message.type === "text") {
+      const textInput = req.body.events[0].message.text.split(" ");
+      const expense = {
+        type: textInput[0],
+        name: textInput[1],
+        category: textInput[2],
+        cost: textInput[3],
+        replyToken: req.body.events[0].replyToken,
+      };
+      if (expense.type == "a") {
+        await addExpenses(expense);
+      }
+      res.send().status(200);
+    }
+  }
 });
 
 app.listen(process.env.PORT, () => {
